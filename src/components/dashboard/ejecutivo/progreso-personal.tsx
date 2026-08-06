@@ -2,7 +2,7 @@
 
 import { Info, Target, TrendingUp, AlertTriangle } from "lucide-react";
 import { DashboardEjecutivoResponseDTO } from "@/types/api";
-import { formatCLP, formatCompactCLP } from "@/utils/formatters";
+import { formatCompactCLP } from "@/utils/formatters";
 
 interface ProgresoPersonalProps {
   data: DashboardEjecutivoResponseDTO;
@@ -36,7 +36,6 @@ export function ProgresoPersonal({
   // Lógica de color pre-atentiva (Oponencia de color de Ware)
   const isPacingPeligro = pacing < 0.8;
   const isPacingAlerta = pacing >= 0.8 && pacing < 1.0;
-  const isPacingSano = pacing >= 1.0;
 
   const colorPacingBg = isPacingPeligro ? "bg-red-500" : isPacingAlerta ? "bg-amber-500" : "bg-emerald-500";
   const colorPacingText = isPacingPeligro ? "text-red-600" : isPacingAlerta ? "text-amber-600" : "text-emerald-600";

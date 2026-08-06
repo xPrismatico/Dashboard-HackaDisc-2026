@@ -77,7 +77,6 @@ export function ClientesRiesgo({ clientes, className = "" }: ClientesRiesgoProps
         {clientes.map((cliente) => {
           const isAlto = cliente.estado_riesgo === "Alto Riesgo";
           const isAlerta = cliente.estado_riesgo === "Alerta Temprana";
-          const isBuen = cliente.estado_riesgo === "Buen Estado";
 
           // Proporciones para las barras
           const pctVolumen = (cliente.volumen_compra / maxVolumen) * 100;

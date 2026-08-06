@@ -2,7 +2,7 @@
 
 import { Info } from "lucide-react";
 import { EjecutivoRiesgoResumenDTO, NivelRiesgo } from "@/types/api";
-import { formatCLP, formatCompactCLP } from "@/utils/formatters";
+import { formatCompactCLP } from "@/utils/formatters";
 import { useDashboardStore } from "@/store/use-dashboard-store";
 
 interface AtencionRequeridaProps {

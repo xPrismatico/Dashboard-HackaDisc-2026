@@ -12,6 +12,124 @@ interface PriorizacionScatterProps {
   className?: string;
 }
 
+// Tipado estricto para el parámetro del tooltip
+interface TooltipParams {
+  value: [number, number, number, string, string, string, string];
+}
+
+// Se extrae la función fuera del componente para resolver el warning de useMemo
+function getScatterOption(oportunidades: OportunidadPipelineDTO[]) {
+  const scatterData = oportunidades.map(op => ({
+    value: [
+      op.probabilidad_cierre_pct,
+      op.dias_sin_contacto,
+      op.monto_ponderado,
+      op.cliente,
+      op.accion_sugerida,
+      op.estado_alerta,
+      op.codigo_cotizacion
+    ],
+    itemStyle: {
+      color: op.estado_alerta === "Urgente" ? "#f43f5e" : op.estado_alerta === "Seguimiento" ? "#f59e0b" : "#10b981",
+      opacity: 0.85,
+      borderColor: op.estado_alerta === "Urgente" ? "#be123c" : "transparent",
+      borderWidth: op.estado_alerta === "Urgente" ? 1.5 : 0
+    }
+  }));
+
+  return {
+    backgroundColor: "transparent",
+    tooltip: {
+      trigger: "item",
+      backgroundColor: "#0f172a",
+      borderColor: "#334155",
+      borderWidth: 1,
+      padding: 16,
+      borderRadius: 8,
+      textStyle: { color: "#f8fafc", fontFamily: "inherit" },
+      extraCssText: "box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);",
+      formatter: (params: TooltipParams) => {
+        const [prob, dias, monto, cliente, accion, , codigo] = params.value;
+        
+        return `
+          <div style="min-width: 240px; font-family: inherit;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #334155; padding-bottom: 8px; margin-bottom: 12px;">
+              <h3 style="font-weight: 800; font-size: 15px; color: #ffffff; margin: 0;">${cliente}</h3>
+              <span style="font-size: 10px; color: #94a3b8; font-weight: 600;">(${codigo})</span>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; justify-content: space-between;">
+                <span style="color: #cbd5e1; font-size: 12px;">Monto:</span>
+                <span style="font-weight: 800; color: #38bdf8; font-size: 13px;">${formatCLP(monto)}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span style="color: #cbd5e1; font-size: 12px;">Probabilidad:</span>
+                <span style="font-weight: 700; color: #ffffff; font-size: 13px;">${prob}%</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span style="color: #cbd5e1; font-size: 12px;">Sin contacto:</span>
+                <span style="font-weight: 700; color: #ffffff; font-size: 13px;">${dias} días</span>
+              </div>
+            </div>
+
+            <div style="margin-top: 14px; padding: 8px 10px; background-color: #1e293b; border-radius: 6px; border: 1px solid #334155;">
+              <span style="display: block; font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 2px;">Acción Sugerida</span>
+              <span style="color: #f8fafc; font-size: 12px; font-weight: 500;">${accion}</span>
+            </div>
+          </div>
+        `;
+      }
+    },
+    grid: {
+      top: 30,
+      left: 20,
+      right: 30,
+      bottom: 40,
+      containLabel: true
+    },
+    xAxis: {
+      type: "value",
+      name: "Probabilidad de Cierre (%)",
+      nameLocation: "middle",
+      nameGap: 30,
+      nameTextStyle: { color: "#64748b", fontSize: 11, fontWeight: 600 },
+      min: 0,
+      max: 100,
+      axisLine: { lineStyle: { color: "#cbd5e1" } },
+      axisLabel: { color: "#94a3b8", fontSize: 11 },
+      splitLine: { show: false }
+    },
+    yAxis: {
+      type: "value",
+      name: "Días Sin Contacto",
+      nameTextStyle: { color: "#64748b", fontSize: 11, fontWeight: 600, padding: [0, 0, 0, 30] },
+      min: 0,
+      max: (value: { max: number }) => Math.max(20, Math.ceil(value.max / 5) * 5),
+      axisLine: { lineStyle: { color: "#cbd5e1" } },
+      axisLabel: { color: "#94a3b8", fontSize: 11 },
+      splitLine: { lineStyle: { color: "#f1f5f9", type: "dashed" } }
+    },
+    series: [
+      {
+        type: "scatter",
+        data: scatterData,
+        symbolSize: (data: (number | string)[]) => {
+          const monto = Number(data[2]) || 0;
+          return Math.max(15, Math.min(60, Math.sqrt(monto / 15000)));
+        },
+        emphasis: {
+          focus: "self",
+          itemStyle: {
+            shadowBlur: 10,
+            shadowColor: "rgba(0,0,0,0.3)"
+          }
+        }
+      }
+    ]
+  };
+}
+
 export function PriorizacionScatter({ oportunidades, className = "" }: PriorizacionScatterProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -20,128 +138,9 @@ export function PriorizacionScatter({ oportunidades, className = "" }: Priorizac
   const seguimiento = oportunidades.filter(o => o.estado_alerta === "Seguimiento").length;
   const sanas = oportunidades.filter(o => o.estado_alerta === "Sano").length;
 
-  
-  const getScatterOption = () => {
-    // Mapeamos los datos al formato matricial de ECharts: 
-    // [0: Probabilidad, 1: Días sin contacto, 2: Monto, 3: Razón Social, 4: Acción, 5: Estado, 6: ID Cotización]
-    const scatterData = oportunidades.map(op => ({
-      value: [
-        op.probabilidad_cierre_pct,
-        op.dias_sin_contacto,
-        op.monto_ponderado,
-        op.cliente,
-        op.accion_sugerida,
-        op.estado_alerta,
-        op.codigo_cotizacion
-      ],
-      itemStyle: {
-        // Colores en base al estado de alerta (Rojo, Amarillo, Verde Esmeralda)
-        color: op.estado_alerta === "Urgente" ? "#f43f5e" : op.estado_alerta === "Seguimiento" ? "#f59e0b" : "#10b981",
-        opacity: 0.85,
-        borderColor: op.estado_alerta === "Urgente" ? "#be123c" : "transparent",
-        borderWidth: op.estado_alerta === "Urgente" ? 1.5 : 0
-      }
-    }));
+  const option = useMemo(() => getScatterOption(oportunidades), [oportunidades]);
 
-    return {
-      backgroundColor: "transparent",
-      tooltip: {
-        trigger: "item",
-        backgroundColor: "#0f172a", // Fondo oscuro (slate-900)
-        borderColor: "#334155",
-        borderWidth: 1,
-        padding: 16,
-        borderRadius: 8,
-        textStyle: { color: "#f8fafc", fontFamily: "inherit" },
-        extraCssText: "box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);",
-        formatter: (params: any) => {
-          const [prob, dias, monto, cliente, accion, , codigo] = params.data.value;
-          
-          return `
-            <div style="min-width: 240px; font-family: inherit;">
-              <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #334155; padding-bottom: 8px; margin-bottom: 12px;">
-                <h3 style="font-weight: 800; font-size: 15px; color: #ffffff; margin: 0;">${cliente}</h3>
-                <span style="font-size: 10px; color: #94a3b8; font-weight: 600;">(${codigo})</span>
-              </div>
-              
-              <div style="display: flex; flex-direction: column; gap: 8px;">
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="color: #cbd5e1; font-size: 12px;">Monto:</span>
-                  <span style="font-weight: 800; color: #38bdf8; font-size: 13px;">${formatCLP(monto)}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="color: #cbd5e1; font-size: 12px;">Probabilidad:</span>
-                  <span style="font-weight: 700; color: #ffffff; font-size: 13px;">${prob}%</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="color: #cbd5e1; font-size: 12px;">Sin contacto:</span>
-                  <span style="font-weight: 700; color: #ffffff; font-size: 13px;">${dias} días</span>
-                </div>
-              </div>
-
-              <div style="margin-top: 14px; padding: 8px 10px; background-color: #1e293b; border-radius: 6px; border: 1px solid #334155;">
-                <span style="display: block; font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 2px;">Acción Sugerida</span>
-                <span style="color: #f8fafc; font-size: 12px; font-weight: 500;">${accion}</span>
-              </div>
-            </div>
-          `;
-        }
-      },
-      grid: {
-        top: 30,
-        left: 20,
-        right: 30,
-        bottom: 40,
-        containLabel: true
-      },
-      xAxis: {
-        type: "value",
-        name: "Probabilidad de Cierre (%)",
-        nameLocation: "middle",
-        nameGap: 30,
-        nameTextStyle: { color: "#64748b", fontSize: 11, fontWeight: 600 },
-        min: 0,
-        max: 100,
-        axisLine: { lineStyle: { color: "#cbd5e1" } },
-        axisLabel: { color: "#94a3b8", fontSize: 11 },
-        splitLine: { show: false }
-      },
-      yAxis: {
-        type: "value",
-        name: "Días Sin Contacto",
-        nameTextStyle: { color: "#64748b", fontSize: 11, fontWeight: 600, padding: [0, 0, 0, 30] },
-        min: 0,
-        // Limita el eje Y a 20 o al máximo valor + un padding visual
-        max: (value: { max: number }) => Math.max(20, Math.ceil(value.max / 5) * 5),
-        axisLine: { lineStyle: { color: "#cbd5e1" } },
-        axisLabel: { color: "#94a3b8", fontSize: 11 },
-        splitLine: { lineStyle: { color: "#f1f5f9", type: "dashed" } } // slate-100
-      },
-      series: [
-        {
-          type: "scatter",
-          data: scatterData,
-          // Función dinámica de tamaño (Área 2D) en base al volumen monetario
-          symbolSize: (data: any[]) => {
-            const monto = data[2] || 0;
-            // Ecuación para escalar burbujas (min 15px, max 60px)
-            return Math.max(15, Math.min(60, Math.sqrt(monto / 15000)));
-          },
-          emphasis: {
-            focus: "self",
-            itemStyle: {
-              shadowBlur: 10,
-              shadowColor: "rgba(0,0,0,0.3)"
-            }
-          }
-        }
-      ]
-    };
-  };
-
-  const option = useMemo(() => getScatterOption(), [oportunidades]);
-
- return (
+  return (
     <>
       {/* VISTA NORMAL */}
       <div className={`flex flex-col w-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6 lg:p-8 ${className}`}>

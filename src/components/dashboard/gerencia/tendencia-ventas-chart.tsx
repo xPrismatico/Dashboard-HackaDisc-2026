@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import ReactECharts from "echarts-for-react";
 import * as echarts from "echarts"; // ← SOLUCIÓN: Importamos echarts para poder usar el LinearGradient
-import { Info } from "lucide-react";
+import { Info, Maximize2, X } from "lucide-react";
 import { formatCLP, formatCompactCLP } from "@/utils/formatters";
+import { AnimatePresence, motion } from "framer-motion";
 
 // Interfaces para simular los datos que llegarían del backend
 export interface TendenciaData {
@@ -20,9 +21,9 @@ interface TendenciaVentasChartProps {
 }
 
 export function TendenciaVentasChart({ data, className = "" }: TendenciaVentasChartProps) {
-  
-  const option = useMemo(() => {
-    return {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+  const getChartOption = (heightPx: string | number) => ({
       backgroundColor: "transparent",
       
       // TOOLTIP: Scented Tooltip con Zoom Semántico Nivel 1
@@ -153,36 +154,89 @@ export function TendenciaVentasChart({ data, className = "" }: TendenciaVentasCh
           z: 1, // Al fondo
         },
       ],
-    };
-  }, [data]);
+    });
 
-  return (
-    <div className={`flex flex-col w-full bg-white rounded-2xl border border-slate-200 shadow-sm p-6 lg:p-8 ${className}`}>
-      
-      {/* CABECERA DEL GRÁFICO */}
-      <div className="flex flex-col mb-4">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-bold text-slate-900">
-            Tendencia de Ventas: ¿Cómo vamos?
-          </h2>
-          <span title="Muestra el avance real vs la proyección del algoritmo ML." className="cursor-help flex items-center">
-            <Info className="w-4 h-4 text-slate-400" />
-          </span>
+  const option = useMemo(() => getChartOption("350px"), [data]);
+  const expandedOption = useMemo(() => getChartOption("70vh"), [data]);
+
+ return (
+    <>
+      {/* VISTA NORMAL */}
+      <div className={`flex flex-col w-full bg-white rounded-2xl border border-slate-200 shadow-sm p-6 lg:p-8 ${className}`}>
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold text-slate-900">
+                Tendencia de Ventas: ¿Cómo vamos?
+              </h2>
+              <span title="Muestra el avance real vs la proyección del algoritmo ML." className="cursor-help flex items-center">
+                <Info className="w-4 h-4 text-slate-400" />
+              </span>
+            </div>
+            <p className="text-sm text-slate-500 mt-0.5">
+              Monitoreo del mes actual vs proyección predictiva.
+            </p>
+          </div>
+          
+          <button 
+            onClick={() => setIsExpanded(true)}
+            className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-900 border border-slate-200 transition-colors"
+            title="Expandir gráfico"
+          >
+            <Maximize2 className="w-4 h-4" />
+          </button>
         </div>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Monitoreo del mes actual vs proyección predictiva.
-        </p>
+
+        <div className="w-full mt-2">
+          <ReactECharts 
+            option={option} 
+            style={{ height: "350px", width: "100%" }} 
+            opts={{ renderer: "svg" }} 
+          />
+        </div>
       </div>
 
-      {/* CONTENEDOR ECHARTS */}
-      <div className="w-full flex-1 min-h-[350px]">
-        <ReactECharts 
-          option={option}
-          style={{ height: "350px", width: "100%" }} 
-          opts={{ renderer: "svg" }} 
-        />
-      </div>
-      
-    </div>
+      {/* VISTA EXPANDIDA (MODAL PANTALLA COMPLETA CON DIFUMINADO) */}
+      <AnimatePresence>
+        {isExpanded && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="relative flex flex-col h-[85vh] w-[95vw] max-w-7xl bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 lg:p-8 overflow-hidden"
+            >
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-900">
+                    Tendencia de Ventas: ¿Cómo vamos? (Vista Detallada)
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Monitoreo ampliado del mes actual vs proyección predictiva.
+                  </p>
+                </div>
+                
+                <button
+                  onClick={() => setIsExpanded(false)}
+                  className="rounded-full bg-slate-100 p-2 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+                  title="Cerrar vista maximizada"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 w-full flex items-center justify-center">
+                <ReactECharts 
+                  option={expandedOption} 
+                  style={{ height: "100%", width: "100%" }} 
+                  opts={{ renderer: "svg" }} 
+                />
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

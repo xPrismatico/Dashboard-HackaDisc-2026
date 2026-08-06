@@ -22,8 +22,10 @@ export function HeroPredictivo({ data, className = "" }: HeroPredictivoProps) {
   const hayDeficit = gap > 0 && forecast < meta;
 
   // 2. Cálculos para el Bullet Chart (HTML/CSS)
-  // Escala máxima dinámica (+5% de respiro visual para que no choque con el borde)
-  const maxScale = Math.max(meta, forecast) * 1.05 || 1; 
+  
+  // ANCLAJE DE ESCALA: Si la proyección es menor a la meta, maxScale es la meta 
+  // para que la línea negra calce exacto al 100% del contenedor. Si la supera, se expande.
+  const maxScale = Math.max(meta, forecast) || 1;
   
   const widthReal = Math.min((real / maxScale) * 100, 100);
   const widthForecast = Math.max(Math.min(((forecast - real) / maxScale) * 100, 100), 0);
@@ -69,13 +71,13 @@ export function HeroPredictivo({ data, className = "" }: HeroPredictivoProps) {
           <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">
             Proyección de Ventas (Cierre de Mes)
           </h2>
-          {/* ← SOLUCIÓN: Envolvemos en span nativo para el title */}
-          <span title="Cálculo predictivo basado en pipeline activo y tasa de éxito." className="cursor-help flex items-center">
+          {/* Envolvemos en span nativo para el title */}
+          <span title="Cálculo predictivo basado en monto bruto y tasa de éxito." className="cursor-help flex items-center">
             <Info className="w-4 h-4 text-slate-400" />
           </span>
         </div>
         
-        <div className="flex items-baseline gap-4 mb-8">
+        <div className="flex gap-10 mb-8">
           <span className="text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight">
             {formatCompactCLP(forecast)}
           </span>
@@ -105,7 +107,7 @@ export function HeroPredictivo({ data, className = "" }: HeroPredictivoProps) {
             style={{ left: `${widthReal}%`, width: `${widthForecast}%` }}
           >
             {widthForecast > 15 && (
-              <span className="text-[10px] font-bold text-white uppercase tracking-wider opacity-90">
+              <span className="text-xs font-bold text-white uppercase tracking-wider opacity-90">
                 + Proyección
               </span>
             )}
@@ -116,6 +118,7 @@ export function HeroPredictivo({ data, className = "" }: HeroPredictivoProps) {
             className="absolute h-12 w-1.5 bg-slate-800 z-30 transform -translate-x-1/2 rounded-full shadow-sm"
             style={{ left: `${posMeta}%` }}
           />
+          
         </div>
 
         {/* METADATOS Y ALERTAS PRESCRIPTIVAS */}

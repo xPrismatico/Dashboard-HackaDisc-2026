@@ -61,6 +61,29 @@ export interface DashboardEjecutivoResponseDTO {
 }
 
 // ==========================================
+// DTOs: COMPONENTES VISUALES (EJECUTIVO)
+// ==========================================
+
+export interface OportunidadPipelineDTO {
+  id_cotizacion: number;
+  codigo_cotizacion: string;
+  cliente: string; // Razón Social
+  monto_ponderado: number; // Precio Final * Probabilidad
+  probabilidad_cierre_pct: number;
+  margen_operacional_pct: number;
+  dias_sin_contacto: number; // Eje Y del Scatterplot
+  estado_alerta: "Urgente" | "Seguimiento" | "Sano";
+  accion_sugerida: string; // Motor prescriptivo (Ej: "Llamar a Jefe de Turno")
+}
+
+export interface TendenciaPersonalDTO {
+  dias: string[];
+  venta_real: (number | null)[];
+  proyeccion: (number | null)[];
+  meta_lineal: number[];
+}
+
+// ==========================================
 // DTOs: MAESTRO EJECUTIVOS
 // ==========================================
 

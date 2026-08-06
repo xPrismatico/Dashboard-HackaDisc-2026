@@ -89,7 +89,7 @@ export function PlanificacionOperativa({ data, alerta, className = "" }: Planifi
       yAxis: {
         type: "value",
         name: "Horas de Relatoría",
-        nameTextStyle: { color: "#94a3b8", fontSize: 11, fontWeight: 500, padding: [0, 0, 0, 20] },
+        nameTextStyle: { color: "#94a3b8", fontSize: 11, fontWeight: 500, padding: [0, -10, 0, 20] },
         axisLine: { show: false },
         axisTick: { show: false },
         axisLabel: { color: "#64748b", fontSize: 11 },
@@ -138,7 +138,7 @@ export function PlanificacionOperativa({ data, alerta, className = "" }: Planifi
           </span>
         </div>
         <p className="text-sm text-slate-500 mt-0.5">
-          Proyección de demanda de relatores según cotizaciones en pipeline.
+          Proyección de demanda de relatores según cotizaciones activas.
         </p>
       </div>
 

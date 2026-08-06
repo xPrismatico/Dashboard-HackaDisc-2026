@@ -20,6 +20,13 @@ interface TendenciaVentasChartProps {
   className?: string;
 }
 
+interface TooltipParam {
+  axisValue: string;
+  seriesName: string;
+  value: number | null;
+  color: string;
+}
+
 export function TendenciaVentasChart({ data, className = "" }: TendenciaVentasChartProps) {
     const [isExpanded, setIsExpanded] = useState(false);
 
@@ -36,7 +43,7 @@ export function TendenciaVentasChart({ data, className = "" }: TendenciaVentasCh
         borderRadius: 8,
         textStyle: { fontFamily: "inherit", color: "#0f172a" },
         extraCssText: "box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);",
-        formatter: (params: any[]) => {
+        formatter: (params: TooltipParam[]) => {
           if (!params || params.length === 0) return "";
           
           const day = params[0].axisValue;

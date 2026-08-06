@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from "react";
@@ -17,6 +18,13 @@ interface PlanificacionOperativaProps {
   className?: string;
 }
 
+interface TooltipParam {
+  axisValue: string;
+  seriesName: string;
+  value: number;
+  color: string;
+}
+
 export function PlanificacionOperativa({ data, alerta, className = "" }: PlanificacionOperativaProps) {
   
   const option = useMemo(() => {
@@ -32,7 +40,7 @@ export function PlanificacionOperativa({ data, alerta, className = "" }: Planifi
         borderRadius: 8,
         textStyle: { fontFamily: "inherit", color: "#0f172a" },
         extraCssText: "box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);",
-        formatter: (params: any[]) => {
+        formatter: (params: TooltipParam[]) => {
           if (!params || params.length === 0) return "";
           
           const mes = params[0].axisValue;

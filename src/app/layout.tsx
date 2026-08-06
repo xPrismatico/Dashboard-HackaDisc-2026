@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Montserrat } from "next/font/google";
+import { Montserrat } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
@@ -8,7 +8,6 @@ const montserrat = Montserrat({
   variable: "--font-montserrat",
   weight: ["400", "500", "600", "700", "800"],
 });
-
 
 export const metadata: Metadata = {
   title: "INSECAP | Dashboard Comercial",
@@ -23,7 +22,7 @@ export default function RootLayout({
   return (
     <html lang="es" className="light">
       <body
-        className={`${montserrat.variable} font-sans bg-slate-950 text-slate-100 min-h-screen antialiased`}
+        className={`${montserrat.variable} font-sans antialiased`}
       >
         {children}
       </body>

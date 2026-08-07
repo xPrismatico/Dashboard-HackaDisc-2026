@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { FiltrosGlobales } from "@/components/dashboard/gerencia/filtros-globales";
 import { HeroPredictivo } from "@/components/dashboard/gerencia/hero-predictivo";
 import { TarjetasKpi } from "@/components/dashboard/gerencia/tarjetas-kpi";
-import { TendenciaVentasChart } from "@/components/dashboard/gerencia/tendencia-ventas-chart";
+import { TendenciaData, TendenciaVentasChart } from "@/components/dashboard/gerencia/tendencia-ventas-chart";
 import { AtencionRequerida } from "@/components/dashboard/gerencia/atencion-requerida";
 import { PlanificacionOperativa } from "@/components/dashboard/gerencia/planificacion-operativa";
 import { ClienteRiesgoData, ClientesRiesgo } from "@/components/dashboard/gerencia/clientes-riesgo";
@@ -16,23 +16,6 @@ import { gerenciaService } from "@/services/gerencia-service";
 import { useDashboardStore } from "@/store/use-dashboard-store";
 import { DashboardGerenteResponseDTO } from '@/types/api';
 
-// --- MOCK DATA PARA EL GRÁFICO ---
-const mockDias = Array.from({ length: 31 }, (_, i) => (i + 1).toString());
-const mockVentaReal = mockDias.map((d, i) => 
-  i <= 16 ? Math.round(15_000_000 + (i * 6_500_000) + Math.random() * 5_000_000) : null
-);
-const ultimoReal = mockVentaReal[16] as number;
-const mockProyeccion = mockDias.map((d, i) => 
-  i >= 16 ? Math.round(ultimoReal + ((i - 16) * 4_000_000) + Math.random() * 2_000_000) : null
-);
-const mockMetaLineal = mockDias.map((d, i) => Math.round((200_000_000 / 30) * i));
-
-const mockTendencia = {
-  dias: mockDias,
-  ventaReal: mockVentaReal,
-  proyeccion: mockProyeccion,
-  metaLineal: mockMetaLineal,
-};
 
 // --- MOCK DATA PARA LA TABLA DE RIESGO COMERCIAL ---
 // SOLUCIÓN: Usamos "as any" para que TypeScript ignore que faltan campos de la DB real en el mock
@@ -142,27 +125,34 @@ const mockClientesRiesgo: ClienteRiesgoData[] = [
 ];
 
 export default function GerenciaPage() {
-  // 1. Extraemos los filtros del estado global
   const { periodoAnio, periodoMes, sucursal, modalidad, financiamiento, soloActivos } = useDashboardStore();
   
-  // 2. Estados locales para manejar la data de la API y la carga
+  // Estados para manejar la data
   const [dashboardData, setDashboardData] = useState<DashboardGerenteResponseDTO | null>(null);
+  const [tendenciaData, setTendenciaData] = useState<TendenciaData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 3. Efecto para obtener los datos cuando cambian los filtros
+  // Efecto principal para obtener los datos
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const data = await gerenciaService.getDashboard(
-          periodoAnio,
-          periodoMes,
-          sucursal,
-          modalidad,
-          financiamiento,
-          soloActivos
-        );
-        setDashboardData(data);
+        // Disparamos ambas peticiones al mismo tiempo para no hacer esperar al usuario
+        const [overview, tendenciaRaw] = await Promise.all([
+          gerenciaService.getDashboard(periodoAnio, periodoMes, sucursal, modalidad, financiamiento, soloActivos),
+          gerenciaService.getTendenciaVentas(periodoAnio, periodoMes, sucursal, modalidad, financiamiento)
+        ]);
+        
+        setDashboardData(overview);
+
+        // Transformamos el arreglo de objetos de la API a los 4 arreglos que necesita ECharts
+        setTendenciaData({
+          dias: tendenciaRaw.dias.map(d => d.dia.toString()),
+          ventaReal: tendenciaRaw.dias.map(d => d.venta_real),
+          proyeccion: tendenciaRaw.dias.map(d => d.proyeccion_ml),
+          metaLineal: tendenciaRaw.dias.map(d => d.meta_ideal)
+        });
+
       } catch (error) {
         console.error("Error al cargar los datos del gerente:", error);
       } finally {
@@ -205,18 +195,18 @@ export default function GerenciaPage() {
           <FiltrosGlobales />
         </div>
 
-        {/* 4. PROTECCIÓN DE RENDERIZADO: Protege la vista mientras el backend responde */}
-        {isLoading || !dashboardData ? (
+        {/* PROTECCIÓN DE RENDERIZADO: Protege la vista mientras el backend responde */}
+        {isLoading || !dashboardData || !tendenciaData ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="w-10 h-10 animate-spin text-[#485CC7] mb-4" />
             <p className="text-slate-500 font-medium">Cargando datos predictivos...</p>
           </div>
         ) : (
           <>
-            {/* MÓDULO HERO PREDICTIVO (Inyectado con datos reales) */}
+            {/* MÓDULO HERO PREDICTIVO */}
             <HeroPredictivo data={dashboardData.resumen_equipo} />
 
-            {/* TARJETAS KPI RESUMEN (Inyectado con datos reales) */}
+            {/* TARJETAS KPI RESUMEN */}
             <TarjetasKpi 
               tasaExito={dashboardData.resumen_equipo.tasa_exito_pct} 
               clientesNuevos={dashboardData.resumen_equipo.clientes_nuevos_totales} 
@@ -225,7 +215,8 @@ export default function GerenciaPage() {
             {/* GRÁFICOS Y TABLAS (GRID 1: Tendencia y Atención) */}
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
               <div className="xl:col-span-7">
-                <TendenciaVentasChart data={mockTendencia} className="h-full" />
+                {/* TENDENCIA DE VENTAS (Inyectado con datos reales) */}
+                <TendenciaVentasChart data={tendenciaData} className="h-full" />
               </div>
               <div className="xl:col-span-5">
                 <AtencionRequerida ejecutivos={mockEjecutivos} className="h-full" />

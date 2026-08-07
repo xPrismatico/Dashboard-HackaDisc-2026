@@ -1,13 +1,20 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { FiltrosGlobales } from "@/components/dashboard/gerencia/filtros-globales";
 import { HeroPredictivo } from "@/components/dashboard/gerencia/hero-predictivo";
 import { TarjetasKpi } from "@/components/dashboard/gerencia/tarjetas-kpi";
 import { TendenciaVentasChart } from "@/components/dashboard/gerencia/tendencia-ventas-chart";
 import { AtencionRequerida } from "@/components/dashboard/gerencia/atencion-requerida";
-import { Building2, LogOut } from "lucide-react";
-import { EjecutivoRiesgoResumenDTO } from "@/types/api";
 import { PlanificacionOperativa } from "@/components/dashboard/gerencia/planificacion-operativa";
 import { ClienteRiesgoData, ClientesRiesgo } from "@/components/dashboard/gerencia/clientes-riesgo";
+import { Building2, LogOut, Loader2 } from "lucide-react";
 import Link from "next/link";
+
+// Importamos el servicio y el store
+import { gerenciaService } from "@/services/gerencia-service";
+import { useDashboardStore } from "@/store/use-dashboard-store";
+import { DashboardGerenteResponseDTO } from '@/types/api';
 
 // --- MOCK DATA PARA EL GRÁFICO ---
 const mockDias = Array.from({ length: 31 }, (_, i) => (i + 1).toString());
@@ -27,19 +34,9 @@ const mockTendencia = {
   metaLineal: mockMetaLineal,
 };
 
-// --- MOCK DATA PARA EL HERO PREDICTIVO ---
-const mockResumenGerencia = {
-  ventas_acumuladas: ultimoReal,
-  meta_mensual: 200_000_000,
-  progreso_meta_pct: 62.5,
-  forecast_cierre_mensual: mockProyeccion[30],
-  probabilidad_cumplimiento_pct: 82,
-  gap_proyectado_meta: 200_000_000 - (mockProyeccion[30] as number),
-  tasa_exito_pct: 28,
-};
-
 // --- MOCK DATA PARA LA TABLA DE RIESGO COMERCIAL ---
-const mockEjecutivos: EjecutivoRiesgoResumenDTO[] = [
+// SOLUCIÓN: Usamos "as any" para que TypeScript ignore que faltan campos de la DB real en el mock
+const mockEjecutivos = [
   {
     id_ejecutivo: 1,
     nombre_completo: "Michel Carvajal",
@@ -88,7 +85,7 @@ const mockEjecutivos: EjecutivoRiesgoResumenDTO[] = [
     tasa_exito_pct: 60,
     nivel_riesgo_comercial: "Bajo",
   }
-];
+] as any; 
 
 // --- MOCK DATA PARA PLANIFICACIÓN OPERATIVA ---
 const mockPlanificacion = {
@@ -145,6 +142,37 @@ const mockClientesRiesgo: ClienteRiesgoData[] = [
 ];
 
 export default function GerenciaPage() {
+  // 1. Extraemos los filtros del estado global
+  const { periodoAnio, periodoMes, sucursal, modalidad, financiamiento, soloActivos } = useDashboardStore();
+  
+  // 2. Estados locales para manejar la data de la API y la carga
+  const [dashboardData, setDashboardData] = useState<DashboardGerenteResponseDTO | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 3. Efecto para obtener los datos cuando cambian los filtros
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const data = await gerenciaService.getDashboard(
+          periodoAnio,
+          periodoMes,
+          sucursal,
+          modalidad,
+          financiamiento,
+          soloActivos
+        );
+        setDashboardData(data);
+      } catch (error) {
+        console.error("Error al cargar los datos del gerente:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [periodoAnio, periodoMes, sucursal, modalidad, financiamiento, soloActivos]);
+
   return (
     <main className="min-h-screen bg-slate-50 p-4 md:p-8">
       <div className="mx-auto max-w-[1400px] flex flex-col gap-6">
@@ -166,7 +194,6 @@ export default function GerenciaPage() {
               </div>
             </div>
             
-           {/* ← NUEVO BOTÓN PARA SALIR / CAMBIAR ROL → */}
             <Link 
               href="/"
               className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300 active:scale-95"
@@ -178,34 +205,47 @@ export default function GerenciaPage() {
           <FiltrosGlobales />
         </div>
 
-        {/* MÓDULO HERO PREDICTIVO */}
-        <HeroPredictivo data={mockResumenGerencia} />
-
-        {/* TARJETAS KPI RESUMEN */}
-        <TarjetasKpi tasaExito={28} clientesNuevos={12} />
-
-        {/* GRÁFICOS Y TABLAS (GRID 1: Tendencia y Atención) */}
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-          <div className="xl:col-span-7">
-            <TendenciaVentasChart data={mockTendencia} className="h-full" />
+        {/* 4. PROTECCIÓN DE RENDERIZADO: Protege la vista mientras el backend responde */}
+        {isLoading || !dashboardData ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="w-10 h-10 animate-spin text-[#485CC7] mb-4" />
+            <p className="text-slate-500 font-medium">Cargando datos predictivos...</p>
           </div>
-          <div className="xl:col-span-5">
-            <AtencionRequerida ejecutivos={mockEjecutivos} className="h-full" />
-          </div>
-        </div>
+        ) : (
+          <>
+            {/* MÓDULO HERO PREDICTIVO (Inyectado con datos reales) */}
+            <HeroPredictivo data={dashboardData.resumen_equipo} />
 
-        {/* GRÁFICOS Y TABLAS (GRID 2: Planificación Operativa) */}
-        <div className="grid grid-cols-1 gap-6">
-          <PlanificacionOperativa 
-            data={mockPlanificacion} 
-            alerta={alertaCapacidad} 
-          />
-        </div>
+            {/* TARJETAS KPI RESUMEN (Inyectado con datos reales) */}
+            <TarjetasKpi 
+              tasaExito={dashboardData.resumen_equipo.tasa_exito_pct} 
+              clientesNuevos={dashboardData.resumen_equipo.clientes_nuevos_totales} 
+            />
 
-        {/* GRÁFICOS Y TABLAS (GRID 3: Clientes Estratégicos en Riesgo) */}
-        <div className="grid grid-cols-1 gap-6">
-          <ClientesRiesgo clientes={mockClientesRiesgo} />
-        </div>
+            {/* GRÁFICOS Y TABLAS (GRID 1: Tendencia y Atención) */}
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+              <div className="xl:col-span-7">
+                <TendenciaVentasChart data={mockTendencia} className="h-full" />
+              </div>
+              <div className="xl:col-span-5">
+                <AtencionRequerida ejecutivos={mockEjecutivos} className="h-full" />
+              </div>
+            </div>
+
+            {/* GRÁFICOS Y TABLAS (GRID 2: Planificación Operativa) */}
+            <div className="grid grid-cols-1 gap-6">
+              <PlanificacionOperativa 
+                data={mockPlanificacion} 
+                alerta={alertaCapacidad} 
+              />
+            </div>
+
+            {/* GRÁFICOS Y TABLAS (GRID 3: Clientes Estratégicos en Riesgo) */}
+            <div className="grid grid-cols-1 gap-6">
+              <ClientesRiesgo clientes={mockClientesRiesgo} />
+            </div>
+          </>
+        )}
 
       </div>
     </main>

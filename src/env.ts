@@ -4,7 +4,7 @@ import { z } from "zod";
 
 /**
  * Variables de entorno validadas al cargar el módulo (dev/build/start).
- * Este archivo agrupa server + client; solo figuran nombres de variables, sin secretos.
+ * Este ssarchivo agrupa server + client; solo figuran nombres de variables, sin secretos.
  */
 export const env = createEnv({
   server: {

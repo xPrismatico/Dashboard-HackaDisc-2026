@@ -1,132 +1,103 @@
 // src/types/api.ts
 
-export type NivelRiesgo = "Bajo" | "Medio" | "Alto" | "Crítico" | "No disponible";
+// ============================================================================
+// DTOs COMBINADOS PARA EL FRONTEND (Adaptados del Backend de FastAPI)
+// ============================================================================
 
-// ==========================================
-// DTOs: GERENCIA
-// ==========================================
-
-export interface ResumenEquipoGerenteDTO {
+export interface ResumenEquipoData {
+  mes: number;
+  anio: number;
+  venta_real_acumulada: number;
+  meta_global: number;
+  progreso_meta_porcentaje: number;
+  forecast_cierre_mes: number;
+  gap_proyectado: number;
+  probabilidad_llegar_meta: number;
+  
+  // Aliases requeridos directamente por el componente HeroPredictivo
   ventas_acumuladas: number;
-  meta_mensual: number | null;
-  progreso_meta_pct: number | null;
-  forecast_cierre_mensual: number | null;
-  probabilidad_cumplimiento_pct: number | null;
-  gap_proyectado_meta: number | null;
+  meta_mensual: number;
+  progreso_meta_pct: number;
+  forecast_cierre_mensual: number;
+  gap_proyectado_meta: number;
+  probabilidad_cumplimiento_pct: number;
+
+  // Campos extra para las tarjetas KPI
   tasa_exito_pct: number;
+  clientes_nuevos_totales: number;
 }
 
-export interface EjecutivoRiesgoResumenDTO {
+export interface IndicadoresClaveData {
+  actividad_reuniones: number;
+  pacing_venta: number;
+  tasa_exito: number;
+  deuda_morosa: number;
+}
+
+export interface RiesgoEjecutivoData {
+  vendedor_id: number;
+  nombre_vendedor: string;
+  iniciales: string;
+  venta_real: number;
+  meta: number;
+  gap_proyectado: number;
+  probabilidad_meta: number;
+  nivel_riesgo: string;
+  palancas: IndicadoresClaveData;
+  
+  // Propiedades añadidas para compatibilidad directa con el UI (AtencionRequerida)
   id_ejecutivo: number;
   nombre_completo: string;
   ventas_acumuladas: number;
-  meta_mensual: number | null;
-  progreso_meta_pct: number | null;
-  forecast_cierre_mensual: number | null;
-  probabilidad_cumplimiento_pct: number | null;
-  gap_proyectado_meta: number | null;
+  meta_mensual: number;
+  progreso_meta_pct: number;
+  forecast_cierre_mensual: number;
+  gap_proyectado_meta: number;
+  probabilidad_cumplimiento_pct: number;
   tasa_exito_pct: number;
-  nivel_riesgo_comercial: NivelRiesgo;
+  nivel_riesgo_comercial: string;
 }
 
 export interface DashboardGerenteResponseDTO {
-  periodo_anio: number;
-  periodo_mes: number;
-  fecha_corte: string | null;
-  resumen_equipo: ResumenEquipoGerenteDTO;
-  ejecutivos: EjecutivoRiesgoResumenDTO[];
+  resumen_equipo: ResumenEquipoData;
+  ejecutivos: RiesgoEjecutivoData[];
 }
 
-// ==========================================
-// DTOs: EJECUTIVO DE VENTAS
-// ==========================================
-
-export interface DashboardEjecutivoResponseDTO {
-  id_ejecutivo: number;
-  nombre_completo: string;
-  periodo_anio: number;
-  periodo_mes: number;
-  fecha_corte: string | null;
-  ventas_acumuladas: number;
-  meta_mensual: number | null;
-  progreso_meta_pct: number | null;
-  monto_faltante_actual: number | null;
-  indice_avance_esperado: number | null;
-  forecast_cierre_mensual: number | null;
-  gap_proyectado_meta: number | null;
-  pipeline_ponderado: number | null;
-  tasa_exito_pct: number;
-  nivel_riesgo_comercial: NivelRiesgo;
-  recomendacion_accion_comercial: string | null;
+export interface DiaTendenciaDTO {
+  dia: number;
+  venta_real: number | null;
+  proyeccion_ml: number | null;
+  meta_ideal: number;
 }
 
-// ==========================================
-// DTOs: COMPONENTES VISUALES (EJECUTIVO)
-// ==========================================
-
-export interface OportunidadPipelineDTO {
-  id_cotizacion: number;
-  codigo_cotizacion: string;
-  cliente: string; // Razón Social
-  monto_ponderado: number; // Precio Final * Probabilidad
-  probabilidad_cierre_pct: number;
-  margen_operacional_pct: number;
-  dias_sin_contacto: number; // Eje Y del Scatterplot
-  estado_alerta: "Urgente" | "Seguimiento" | "Sano";
-  accion_sugerida: string; // Motor prescriptivo (Ej: "Llamar a Jefe de Turno")
+export interface TendenciaVentasData {
+  mes: number;
+  anio: number;
+  dias: DiaTendenciaDTO[];
 }
 
-export interface TendenciaPersonalDTO {
-  dias: string[];
-  venta_real: (number | null)[];
-  proyeccion: (number | null)[];
-  meta_lineal: number[];
+export interface MesPlanificacionDTO {
+  mes_texto: string;
+  mineria_hrs: number;
+  excel_hrs: number;
+  maquinaria_hrs: number;
 }
 
-// ==========================================
-// DTOs: MAESTRO EJECUTIVOS
-// ==========================================
-
-export interface EjecutivoResumenDTO {
-  id_ejecutivo: number;
-  nombre_completo: string;
-  email: string;
-  cargo_categoria: string;
-  estado_activo: boolean;
+export interface PlanificacionOperativaResponse {
+  alerta: string | null;
+  data: MesPlanificacionDTO[];
 }
 
-export interface EjecutivoListResponseDTO {
-  total: number;
-  items: EjecutivoResumenDTO[];
+export interface ClienteRiesgoFrontendDTO {
+  id_cliente: number;
+  razon_social: string;
+  volumen_compra_clp: number;
+  magnitud_riesgo_clp: number;
+  nivel_riesgo: string;
+  ejecutivo_responsable: string;
+  detalle_riesgo: string;
 }
 
-// ==========================================
-// DTOs: KPIs ESPECÍFICOS
-// ==========================================
-
-export interface OficialDashboardKPIsDTO {
-  id_ejecutivo: number;
-  periodo_anio: number;
-  periodo_mes: number;
-  nivel_ventas: number;
-  progreso_meta_pct: number | null;
-  tasa_exito_pct: number;
-  clientes_nuevos_count: number;
-  clientes_recuperados_count: number;
-  reuniones_count: number;
-  tasa_cursos_ejecutados_pct: number;
-  monto_terminadas_historico: number;
-  facturadas_mes_pct: number;
-  eficacia_r51_pct: number;
-  post_venta_registrados_count: number;
-  forecast_cierre_mensual: number;
-  probabilidad_cumplimiento_pct: number;
-  gap_proyectado_meta: number;
-  indice_avance_esperado: number;
-  health_score_comercial: number;
-  nivel_riesgo_comercial: string;
-  pipeline_ponderado: number;
-  conversion_monto_cotizado_pct: number;
-  ticket_promedio_vendido: number;
-  recomendacion_accion_comercial: string;
+export interface ClientesRiesgoResponse {
+  clientes: ClienteRiesgoFrontendDTO[];
 }

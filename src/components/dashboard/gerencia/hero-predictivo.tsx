@@ -3,12 +3,13 @@
 import { useMemo } from "react";
 import ReactECharts from "echarts-for-react";
 import { AlertTriangle, Info, Target } from "lucide-react";
-import { ResumenEquipoGerenteDTO } from "@/types/api";
+import { ResumenEquipoData } from "@/types/api"; 
 import { formatCLP, formatCompactCLP } from "@/utils/formatters";
 
+
 interface HeroPredictivoProps {
-  data: ResumenEquipoGerenteDTO;
-  className?: string; // ← SOLUCIÓN: Permitimos recibir className desde el padre
+  data: ResumenEquipoData; 
+  className?: string;
 }
 
 export function HeroPredictivo({ data, className = "" }: HeroPredictivoProps) {
